@@ -76,6 +76,11 @@ def process_inbound_udp(sock):
         # received an WHOHAS pkt
         # see what chunk the sender has
         whohas_chunk_hash = data[:20]
+################################################
+#TODO:
+        #遍历每个chunkhash，若拥有则回复IHAVE
+        #当回复的IHAVE超过MAX_SEND时，回复DENIED
+
         # bytes to hex_str
         chunkhash_str = bytes.hex(whohas_chunk_hash)
         ex_sending_chunkhash = chunkhash_str
@@ -92,8 +97,9 @@ def process_inbound_udp(sock):
         # see what chunk the sender has
         get_chunk_hash = data[:20]
 ################################################
+#TODO:
         #记录谁有，把address和对应的chunkhash存起来
-        #收到重复的IHAVE，则不回复GET
+        #根据收到的IHAVE，选择peer发送GET,一个peer只能同时传一个chunk，所以不能给同一个peer发两个GET
 
         # send back GET pkt
         get_header = struct.pack("HBBHHII", socket.htons(52305), 35, 2 , socket.htons(HEADER_LEN), socket.htons(HEADER_LEN+len(get_chunk_hash)), socket.htonl(0), socket.htonl(0))
@@ -103,6 +109,7 @@ def process_inbound_udp(sock):
     elif Type == 2:
         # received a GET pkt
 ################################################
+#TODO:
         #记录谁要，把address和对应的chunkhash存起来
         #发送完data开始计时，超时重传
 
@@ -115,6 +122,7 @@ def process_inbound_udp(sock):
     elif Type == 3:
         # received a DATA pkt
 ################################################
+#TODO:
         #通过address得到需要的chunkhash，把数据存到对应的chunk中
         ex_received_chunk[ex_downloading_chunkhash] += data
 
@@ -151,8 +159,12 @@ def process_inbound_udp(sock):
     elif Type == 4:
         # received an ACK pkt
 ################################################
+#TODO:
         #收到重复ACK重传
-        #发送完data开始计时，超时重传
+        #更新TimeoutInterval = EstimatedRTT + 4 · DevRTT （课件week7 p46）（文档 p9）
+        #更新cwnd  （课件week8 p38）（文档 p11）
+        #发送⌊cwnd⌋个DATA
+        #发送完data开始计时，超过TimeoutInterval重传
 
         ack_num = socket.ntohl(Ack)
         if (ack_num)*MAX_PAYLOAD >= CHUNK_DATA_SIZE:
